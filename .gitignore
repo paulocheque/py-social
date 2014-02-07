@@ -1,3 +1,4 @@
+.DS_Store
 *.py[cod]
 
 # C extensions
@@ -18,6 +19,8 @@ develop-eggs
 lib
 lib64
 __pycache__
+*.log
+*~
 
 # Installer logs
 pip-log.txt
@@ -34,3 +37,9 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+env26
+env27
+env30
+env32
+env33
