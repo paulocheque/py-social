@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 import json
 import logging
+import os
 import re
 import sys
 import urllib2
@@ -55,11 +56,18 @@ class FacebookEventConnection(FacebookEventError):
 
 
 class FacebookGraphAPI(object):
-    def __init__(self, uid, fb_app_id, fb_app_secret, access_token=''):
+    def __init__(self, uid, fb_app_id=None, fb_app_secret=None, access_token=''):
         self.uid = uid
         self.properties = {}
-        self.fb_app_id = fb_app_id
-        self.fb_app_secret = fb_app_secret
+        if fb_app_id:
+            self.fb_app_id = fb_app_id
+        else:
+            self.fb_app_id = os.environ.get('FACEBOOK_API_KEY', '')
+        if fb_app_secret:
+            self.fb_app_secret = fb_app_secret
+        else:
+            self.fb_app_secret = os.environ.get('FACEBOOK_SECRET', '')
+
         self.access_token = access_token
 
     def request(self, url, content_type, timeout=240): # default 3 min of timeout
@@ -105,8 +113,8 @@ class FacebookEventPage(FacebookGraphAPI):
     }
     """
 
-    def __init__(self, uid, fb_app_id, fb_app_secret, access_token=''):
-        super(FacebookEventPage, self).__init__(uid, fb_app_id, fb_app_secret, access_token=access_token)
+    def __init__(self, uid, fb_app_id=None, fb_app_secret=None, access_token=''):
+        super(FacebookEventPage, self).__init__(uid, fb_app_id=fb_app_id, fb_app_secret=fb_app_secret, access_token=access_token)
         self.flyer = None
         self.flyer_default = None
         self.flyer_big = None
@@ -152,17 +160,19 @@ class FacebookEventPage(FacebookGraphAPI):
     def get_location(self):
         return self.properties['location'] if 'location' in self.properties else u'Não especificado'
 
-    def _get_brazil_date(self):
-        TIMEZONE = -3 # Brazil = UTC-3 (in summer time: UTC-2)
+    def get_timestamp(self, timezone=0):
         fb_date = datetime.strptime(self.properties['start_time'], '%d/%m/%Y-%H:%M')
-        return fb_date + timedelta(hours=TIMEZONE)
+        if timezone:
+            return fb_date + timedelta(hours=TIMEZONE)
+        else:
+            return fb_date
 
-    def get_date(self):
-        return self._get_brazil_date().date()
+    def get_date(self, timezone=0):
+        return self.get_timestamp(timezone=timezone).date()
 
-    def get_time(self):
+    def get_time(self, timezone=0):
         # http://developers.facebook.com/docs/reference/api/
-        return self._get_brazil_date().time()
+        return self.get_timestamp(timezone=timezone).time()
 
     def get_flyer(self):
         return self.flyer
