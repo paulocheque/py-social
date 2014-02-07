@@ -163,7 +163,7 @@ class FacebookEventPage(FacebookGraphAPI):
     def get_timestamp(self, timezone=0):
         fb_date = datetime.strptime(self.properties['start_time'], '%d/%m/%Y-%H:%M')
         if timezone:
-            return fb_date + timedelta(hours=TIMEZONE)
+            return fb_date + timedelta(hours=timezone)
         else:
             return fb_date
 
