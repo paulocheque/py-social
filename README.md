@@ -3,7 +3,7 @@ PySocial
 
 ![Continuous Integration Status](https://secure.travis-ci.org/paulocheque/PySocial.png)
 
-#### Latest version: 0.0.1 (2013/../..)
+#### Latest version: 0.1.0 (2013/../..)
 
 DESCRIPTOIN
 
@@ -16,9 +16,44 @@ DESCRIPTOIN
 Basic Example of Usage
 ------------------------
 
-TEXT
-
 ```python
+# Example of Usage
+from py_social.facebook_services import *
+
+TEST_FB_APP_ID = os.getenv('FACEBOOK_API_KEY', '?')
+TEST_FB_APP_SECRET = os.getenv('FACEBOOK_API_SECRET', '?')
+user_id = '?'
+page_id = '?'
+event_id = '?'
+group_id = '?'
+
+fb = FacebookUser(user_id, app_id=TEST_FB_APP_ID, app_secret=TEST_FB_APP_SECRET)
+fb.load(fields='email,username')
+print fb.get_email()
+print fb.get_field('username')
+
+fb = FacebookPage(page_id, app_id=TEST_FB_APP_ID, app_secret=TEST_FB_APP_SECRET)
+fb.load()
+fb.load_feed()
+print len(fb.get_all_users_ids())
+print len(fb.get_events_ids_from_feed())
+
+fb = FacebookEvent(event_id, app_id=TEST_FB_APP_ID, app_secret=TEST_FB_APP_SECRET)
+fb.load()
+fb.load_feed()
+fb.load_maybe()
+fb.load_attending()
+fb.load_small_flyer()
+fb.load_flyers()
+print len(fb.get_all_users_ids())
+print len(fb.get_events_ids_from_feed())
+
+fb = FacebookGroup(group_id, app_id=TEST_FB_APP_ID, app_secret=TEST_FB_APP_SECRET)
+fb.load()
+fb.load_feed()
+fb.load_members()
+print len(fb.get_all_users_ids())
+print len(fb.get_events_ids_from_feed())
 ```
 
 Submenu
@@ -64,16 +99,31 @@ pip install PySocial --upgrade --no-deps
 
 #### Requirements
 
-* Python 2.6 / 2.7 / 3.2 / 3.3
-* Tested with ...
+* Python 2.7 / 3.3
+* Tested with 2.7
 
 
 Change Log
 -------------
 
-#### 0.0.1 (2013/03/30)
+#### 0.1.0 (2014/02/20)
 
-* [new] ...
+* [new] Facebook spider
+* [new] get Event/Page/Group users from feed.
+* [new] get Event/Page/Group events from feed.
+* [new] get Event users from maybe and attending.
+* [new] get Group users from members.
+* [update] FacebookEventPage renamed to FacebookEvent
+* [update] FacebookGroupPage renamed to FacebookGroup
+* [update] FacebookUserInfo renamed to FacebookUser
+* [update] FacebookEvent.get_event_name renamed to FacebookEvent.get_name
+
+#### 0.0.1 (2014/02/01)
+
+* [new] FacebookEventPage
+* [new] FacebookGroupPage
+* [new] FacebookUserInfo
+* [new] tweet
 
 
 TODO
