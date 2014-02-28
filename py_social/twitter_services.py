@@ -24,5 +24,5 @@ def tweet(message, consumer_key=None, consumer_secret=None, access_token=None, a
 
             api.update_status(message[0:140])
         except Exception as e:
-            logging.error(u'Falha ao tweetar: %s' % message)
+            logging.error(u'Fail to tweet: %s' % message)
             # We do not want to interrupt the application because a tweet error.
