@@ -1,9 +1,7 @@
-#python-dateutil==2.1
-#requests==2.2.1
-#six==1.4.1
+six==1.4.1
+requests==2.2.1
+python-dateutil==2.1
 
-#simplejson==3.3.0
-#jsonpickle==0.6.1
-#git+git://github.com/paulocheque/jsonpickle.git#egg=jsonpickle
+simplejson==3.3.0
 
 tweepy==2.2

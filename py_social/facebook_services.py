@@ -1,178 +1,310 @@
 # coding: utf-8
 from datetime import datetime, timedelta
-import json
 import logging
 import os
 import re
 import sys
-import urllib2
 
-from .http_services import request
-
-
-FB_EVENT_URL = r'http://facebook.com/events/%s'
-FB_EVENT_GRAPH = r'https://graph.facebook.com/%s?date_format=d/m/Y-H:i&access_token=%s'
-FB_EVENT_PICTURE_GRAPH = r'https://graph.facebook.com/%s/picture?type=small&access_token=%s'
-#http://developers.facebook.com/docs/reference/fql/event/
-FB_EVENT_ALL_PICTURES_GRAPH = r'https://graph.facebook.com/fql?q=SELECT+pic,pic_big,pic_small+FROM+event+WHERE+eid=%s&access_token=%s'
-
-FB_GROUP_URL = r'http://www.facebook.com/groups/%s'
-FB_GROUP_GRAPH = r'https://graph.facebook.com/%s/feed?access_token=%s'
-FB_GROUP_MEMBERS_GRAPH = r'https://graph.facebook.com/%s/members/?limit=%s&offset=%s&access_token=%s'
-
-FB_USER_GRAPH = r'https://graph.facebook.com/%s?fields=email,gender,devices&access_token=%s'
+from dateutil.parser import *
+import requests
 
 
-# http://php.net/manual/en/function.date.php
-# http://developers.facebook.com/docs/reference/api/
-# https://developers.facebook.com/apps
+class FacebookError(Exception): pass
+
+class FacebookConnectionError(FacebookError): pass
+
+class FacebookConnectionLimit(FacebookError): pass
+
+class FacebookDataError(FacebookError): pass
+
+class FacebookPermissionError(FacebookError): pass
+
+class FacebookInvalidId(FacebookError): pass
+
+
+def get_event_id_from_facebook_url(value):
+    return int(re.match(r'.+/events/(?P<event_id>\d+).*', value).group('event_id'))
+
+
 # http://developers.facebook.com/tools/explorer/
-# http://developers.facebook.com/docs/authentication/
-#FB_APP_ID = r''
-#FB_APP_SECRET = r''
+class FacebookGraphApi(object):
+    URL = 'https://graph.facebook.com/%(fb_id)s/'
+    # http://developers.facebook.com/docs/authentication/
+    URL_TOKEN = 'https://graph.facebook.com/oauth/access_token?grant_type=client_credentials&client_id=%(app_id)s&client_secret=%(app_secret)s'
 
-# old
-# FB_GET_ACCESS_TOKEN = 'https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=%s&response_type=token'
-FB_GET_ACCESS_TOKEN = 'https://graph.facebook.com/oauth/access_token?grant_type=client_credentials&client_id=%s&client_secret=%s'
+    def __init__(self, fb_id, app_id=None, app_secret=None):
+        self.data = {}
+        self.fb_id = fb_id
+        self.app_id = app_id if app_id else os.environ.get('FACEBOOK_API_KEY', '')
+        self.app_secret = app_secret if app_secret else os.environ.get('FACEBOOK_API_SECRET', '')
 
+        self._access_token = None
+        self._number_of_requests = 0
+        self._timestamp_token_updated = None
 
-# for app? not user?
-# https://www.facebook.com/dialog/oauth?client_id=%s&redirect_uri=https://DOMAIN/tasks/update-facebook-token&response_type=token
-# http://tungwaiyip.info/blog/2011/02/19/facebook_oauth_authentication_flow
-# http://developers.facebook.com/blog/post/2011/05/13/how-to--handle-expired-access-tokens/
-#FB_GET_ACCESS_TOKEN = 'https://graph.facebook.com/oauth/access_token?client_id=%s&client_secret=%s&redirect_uri=http://DOMAIN/&code=%s'
-
-
-class FacebookEventError(Exception):
-    pass
-
-
-class InvalidFacebookEvent(FacebookEventError):
-    pass
-
-
-class FacebookEventConnection(FacebookEventError):
-    pass
-
-
-class FacebookGraphAPI(object):
-    def __init__(self, uid, fb_app_id=None, fb_app_secret=None, access_token=''):
-        self.uid = uid
-        self.properties = {}
-        if fb_app_id:
-            self.fb_app_id = fb_app_id
-        else:
-            self.fb_app_id = os.environ.get('FACEBOOK_API_KEY', '')
-        if fb_app_secret:
-            self.fb_app_secret = fb_app_secret
-        else:
-            self.fb_app_secret = os.environ.get('FACEBOOK_SECRET', '')
-
-        self.access_token = access_token
-
-    def request(self, url, content_type, timeout=240): # default 3 min of timeout
-        try:
-            return request(url, content_type, timeout=timeout)
-        except urllib2.HTTPError as e:
-            raise FacebookEventConnection(e), None, sys.exc_info()[2]
-        except IOError as e:
-            raise FacebookEventConnection(e), None, sys.exc_info()[2]
-
+    # http://developers.facebook.com/blog/post/2011/05/13/how-to--handle-expired-access-tokens/
     def update_access_token(self):
-        access_token = self.request(FB_GET_ACCESS_TOKEN % (self.fb_app_id, self.fb_app_secret), 'text/plain', timeout=30)
-        self.access_token = access_token.replace('access_token=', '')
+        token_not_loaded = self._access_token is None
+        token_expired = (not self._timestamp_token_updated) or datetime.now() > self._timestamp_token_updated + timedelta(minutes=5)
+        too_many_requests = self._number_of_requests % 50 == 0
+        if  too_many_requests or token_expired or token_not_loaded:
+            url = self.URL_TOKEN % dict(app_id=self.app_id, app_secret=self.app_secret)
+            self._access_token = requests.get(url).text
+            self._timestamp_token_updated = datetime.now()
+        return self._access_token
 
-    def parse(self):
-        pass
+    def _add_access_token_to_url(self, graph_url):
+        if '?' in graph_url:
+            return ''.join([graph_url, '&', self._access_token])
+        else:
+            return ''.join([graph_url, '?', self._access_token])
+
+    def validate_status_code(self, code):
+        if code == 401 or code == 403:
+            raise FacebookPermissionError('Invalid access token for this action')
+        elif code == 404:
+            raise FacebookInvalidId('Is the url correct? %s' % self.fb_id)
+        elif code == 400: # py-social bug or bad usage of the lib or country/age/etc restriction
+            raise FacebookPermissionError('Is your access token valid for this action?')
+
+    def validate_response(self, data):
+        error = data.get('error', None)
+        if error:
+            # {
+            #    "error": {
+            #       "message": "An access token is required to request this resource.",
+            #       "type": "OAuthException",
+            #       "code": 104
+            #    }
+            # }
+            code = int(error.get('code'), 0)
+            msg = error.get('message', '')
+            error_type = error.get('type', '')
+            if code == 104 or code == 102 or error_type == 'OAuthException':
+                raise FacebookPermissionError('Invalid access token for this action: ' + msg)
+            elif code == 17 or code == 4 or code == 613:
+                # https://developers.facebook.com/docs/reference/ads-api/api-rate-limiting/
+                raise FacebookConnectionLimit('Too many requests to Graph API: ' + msg)
+            else:
+                raise FacebookError(msg)
+
+    def load_graph(self, graph_url):
+        self._number_of_requests += 1
+        graph_url = graph_url % dict(fb_id=self.fb_id)
+        self.update_access_token()
+        graph_url = self._add_access_token_to_url(graph_url)
+        print(graph_url)
+        headers = {'content-type': 'application/json'}
+        r = requests.get(graph_url, headers=headers)
+        print(r)
+        self.validate_status_code(r.status_code)
+        self.validate_response(r.json())
+        return r.json()
+
+    def load(self, **kwargs):
+        params = '&'.join([k + '=' + v for k, v in kwargs.items()])
+        self.data = self.load_graph(self.URL + '?' + params)
+        return self.data
+
+    def load_image(self, graph_url):
+        self._number_of_requests += 1
+        self.update_access_token()
+        graph_url = self._add_access_token_to_url(graph_url)
+        print(graph_url)
+        r = requests.get(graph_url)
+        return r.content
+
+    def parse_timestamp(self, timestamp_str):
+        # https://developers.facebook.com/docs/reference/api/dates/
+        # Facebook default: ISO8601
+        # e.g. 2012-12-15T14:00:02+0000
+        return parse(timestamp_str) if timestamp_str else timestamp_str
+
+    def parse_in_naive_timestamp(self, timestamp_str):
+        if not timestamp_str:
+            return timestamp_str
+        t = self.parse_timestamp(timestamp_str)
+        format = '%Y-%m-%d %H:%M'
+        s = t.strftime(format)
+        return datetime.strptime(s, format)
+
+    def format_email(self, email):
+        if email:
+            return email.replace('\u0040', '@')
+        return email
 
 
-class FacebookEventPage(FacebookGraphAPI):
-    """
-    Facebook JSON Example:
-    {
-       "id": "EVENT ID",
-       "owner": {
-          "name": "USER NAME",
-          "id": "USER ID"
-       },
-       "name": "NAME",
-       "description": "EVENT DESCRIPTION",
-       "start_time": "2010-03-14T14:00:00",
-       "end_time": "2010-03-14T17:30:00",
-       "location": "EVENT LOCATION",
-       "venue": {
-          "street": "409 Colorado St.",
-          "city": "Austin",
-          "state": "Texas",
-          "country": "United States",
-          "latitude": 30.2669,
-          "longitude": -97.7428
-       },
-       "privacy": "OPEN",
-       "updated_time": "2010-04-13T15:29:40+0000"
-    }
-    """
+class FacebookUser(FacebookGraphApi):
+    "https://developers.facebook.com/docs/reference/api/user/"
+    URL = r'https://graph.facebook.com/%(fb_id)s'
 
-    def __init__(self, uid, fb_app_id=None, fb_app_secret=None, access_token=''):
-        super(FacebookEventPage, self).__init__(uid, fb_app_id=fb_app_id, fb_app_secret=fb_app_secret, access_token=access_token)
+    def load(self, fields='email,gender,languages,username,verified', **kwargs):
+        return super(FacebookUser, self).load(**kwargs)
+
+    def get_field(self, field):
+        if field == 'email':
+            return self.get_email()
+        return self.data.get(field, None)
+
+    def get_email(self):
+        email = self.data.get('email', None)
+        username = self.data.get('username', None)
+        if not email and username:
+            email = '%s@facebook.com' % username
+        return self.format_email(email)
+
+
+class FacebookCommunity(FacebookGraphApi):
+    URL_FEED = 'https://graph.facebook.com/%(fb_id)s/feed'
+
+    def __init__(self, fb_id, app_id=None, app_secret=None):
+        super(FacebookCommunity, self).__init__(fb_id, app_id=app_id, app_secret=app_secret)
+        self.feed = []
+
+    def load_feed(self):
+        self.feed = self.load_graph(self.URL_FEED).get('data', [])
+        return self.feed
+
+    def get_events_ids_from_feed(self):
+        event_ids = []
+        for f in self.feed:
+            url_re_expression = '.+facebook.com/events/(?P<event_id>\d+).*'
+            if 'message' in f:
+                try:
+                    event_id = re.search(url_re_expression, f['message']).group(1)
+                    event_ids.append(int(event_id))
+                except AttributeError:
+                    pass # not a event link
+            if 'link' in f:
+                try:
+                    event_id = re.search(url_re_expression, f['link']).group(1)
+                    event_ids.append(int(event_id))
+                except AttributeError:
+                    pass # not a event link
+        return list(set(event_ids)) # remove replicated links
+
+    def get_recent_users_ids_from_feed(self):
+        fb_ids = []
+        for f in self.feed:
+            if f.get('likes', None):
+                fb_ids_from_likes = [l['id'] for l in f['likes']['data']]
+                fb_ids += fb_ids_from_likes
+            if f.get('comments', None):
+                fb_ids_from_comments = [u['from']['id'] for u in f['comments']['data']]
+                fb_ids += fb_ids_from_comments
+        return list(set(fb_ids))
+
+    def get_all_users_ids(self):
+        users = []
+        feed_users = self.get_recent_users_ids_from_feed()
+        users += feed_users
+        return list(set(users))
+
+    def get_all_users(self, fields='email,username', offset=0, limit=5000):
+        users = []
+        for user_id in self.get_all_users_ids()[offset:limit]:
+            fb = FacebookUser(user_id, app_id=self.app_id, app_secret=self.app_secret)
+            fb.load(fields=fields)
+            fields_splitted = fields.split(',')
+            user = dict(fb_id=user_id)
+            for f in fields_splitted:
+                user[f] = fb.get_field(f)
+            users.append(user)
+        return users
+
+    def _get_users_ids_from_list(self, result):
+        return [u['id'] for u in result]
+
+
+class FacebookPage(FacebookCommunity):
+    "http://developers.facebook.com/docs/reference/api/page/"
+
+
+class FacebookEvent(FacebookCommunity):
+    "https://developers.facebook.com/docs/graph-api/reference/event"
+    URL_MAYBE = 'https://graph.facebook.com/%(fb_id)s/maybe'
+    URL_ATTENDING = 'https://graph.facebook.com/%(fb_id)s/attending'
+    URL_PICTURE = r'https://graph.facebook.com/%(fb_id)s/picture?type=small'
+    #http://developers.facebook.com/docs/reference/fql/event/
+    URL_ALL_PICTURES = r'https://graph.facebook.com/fql?q=SELECT+pic,pic_big,pic_small+FROM+event+WHERE+eid=%(fb_id)s'
+
+    def __init__(self, fb_id, app_id=None, app_secret=None):
+        super(FacebookEvent, self).__init__(fb_id, app_id=app_id, app_secret=app_secret)
+        self.maybe = {}
+        self.attending = {}
         self.flyer = None
+        self.flyers_info = None
         self.flyer_default = None
         self.flyer_big = None
         self.flyer_small = None
 
-    def parse(self):
-        self.update_access_token()
-        url = FB_EVENT_GRAPH % (self.uid, self.access_token)
-        logging.info(url)
-        facebook_json = self.request(url, 'application/json')
-        #logging.info(facebook_json)
-        try:
-            self.properties = json.loads(facebook_json)
-            if not isinstance(self.properties, dict):
-                logging.error(u'Error: %s' % self.properties)
-                raise InvalidFacebookEvent(u'Não foi possível carregar a balada'), None, sys.exc_info()[2]
-        except Exception as e:
-            logging.error(u'Error: %s' % repr(e))
-            raise InvalidFacebookEvent(e, u'Página do evento inválida'), None, sys.exc_info()[2]
+    def load_maybe(self):
+        self.maybe = self.load_graph(self.URL_MAYBE)
+        return self.maybe
 
-        url = FB_EVENT_PICTURE_GRAPH % (self.uid, self.access_token)
-        self.flyer = self.request(url, 'image/jpeg');
+    def load_attending(self):
+        self.attending = self.load_graph(self.URL_ATTENDING)
+        return self.attending
 
-        url = FB_EVENT_ALL_PICTURES_GRAPH % (self.uid, self.access_token)
-        flyers_info = self.request(url, 'application/json')
-        flyers_info = json.loads(flyers_info)
+    def load_small_flyer(self):
+        self.flyer = self.load_image(self.URL_PICTURE)
+        return self.flyer
+
+    def load_flyers(self):
+        self.flyers_info = self.load_graph(self.URL_ALL_PICTURES)
         try:
-            self.flyer_default = self.request(flyers_info['data'][0]['pic'], 'image/jpeg')
+            self.flyer_default = self.load_image(self.flyers_info['data'][0]['pic'])
         except (KeyError, IndexError):
             pass
         try:
-            self.flyer_big = self.request(flyers_info['data'][0]['pic_big'], 'image/jpeg')
+            self.flyer_big = self.load_image(self.flyers_info['data'][0]['pic_big'])
         except (KeyError, IndexError):
             pass
         try:
-            self.flyer_small = self.request(flyers_info['data'][0]['pic_small'], 'image/jpeg')
+            self.flyer_small = self.load_image(self.flyers_info['data'][0]['pic_small'])
         except (KeyError, IndexError):
             pass
+        return self.flyers_info
 
-    def get_event_name(self):
-        return self.properties['name']
+    def get_recent_users_ids_from_maybe(self):
+        return list(set(self._get_users_ids_from_list(self.maybe.get('data', []))))
+
+    def get_recent_users_ids_from_attending(self):
+        return list(set(self._get_users_ids_from_list(self.attending.get('data', []))))
+
+    def get_all_users_ids(self):
+        users = super(FacebookEvent, self).get_all_users_ids()
+        users += self.get_recent_users_ids_from_maybe()
+        users += self.get_recent_users_ids_from_attending()
+        return list(set(users))
+
+    def get_name(self):
+        return self.data.get('name', None)
+
+    def get_lat_long(self):
+        try:
+            return self.data['venue']['latitude'], self.data['venue']['longitude']
+        except KeyError:
+            return None, None
 
     def get_location(self):
-        return self.properties['location'] if 'location' in self.properties else u'Não especificado'
+        return self.data.get('location', '')
 
-    def get_timestamp(self, timezone=0):
-        fb_date = datetime.strptime(self.properties['start_time'], '%d/%m/%Y-%H:%M')
-        if timezone:
-            return fb_date + timedelta(hours=timezone)
-        else:
-            return fb_date
+    def get_timestamp(self):
+        return self.parse_timestamp(self.data.get('start_time', None))
 
-    def get_date(self, timezone=0):
-        return self.get_timestamp(timezone=timezone).date()
+    def get_naive_timestamp(self):
+        return self.parse_in_naive_timestamp(self.data.get('start_time', None))
 
-    def get_time(self, timezone=0):
+    def get_timestamp_str(self):
+        return self.get_timestamp().strftime('%Y-%m-%d %H:%M')
+
+    def get_date_str(self):
+        return self.get_timestamp().strftime('%Y-%m-%d')
+
+    def get_time_str(self):
         # http://developers.facebook.com/docs/reference/api/
-        return self.get_timestamp(timezone=timezone).time()
+        return self.get_timestamp().strftime('%H:%M')
 
     def get_flyer(self):
         return self.flyer
@@ -187,81 +319,29 @@ class FacebookEventPage(FacebookGraphAPI):
         return self.flyer_small
 
 
-class FacebookGroupPage(FacebookGraphAPI):
-    """
-    Facebook JSON Example:
-    http://developers.facebook.com/docs/reference/api/group/
-    """
+class FacebookGroup(FacebookCommunity):
+    "http://developers.facebook.com/docs/reference/api/group/"
+    URL_MEMBERS = 'https://graph.facebook.com/%(fb_id)s/members'
 
-    def parse(self):
-        self.update_access_token()
-        url = FB_GROUP_GRAPH % (self.uid, self.access_token)
-        logging.info(url)
-        facebook_json = self.request(url, 'application/json')
-        #logging.debug(facebook_json)
-        try:
-            self.properties = json.loads(facebook_json)
-        except Exception as e:
-            logging.error(u'Error: %s' % repr(e))
-            raise InvalidFacebookEvent(e, u'Página do evento inválida'), None, sys.exc_info()[2]
+    def __init__(self, fb_id, app_id=None, app_secret=None):
+        super(FacebookGroup, self).__init__(fb_id, app_id=app_id, app_secret=app_secret)
+        self.members = {}
 
-    def get_event_ids(self):
-        event_ids = []
-        feeds = self.properties['data']
-        for feed in feeds:
-            url_re_expression = '.+facebook.com/events/(?P<event_id>\d+).*'
-            if 'message' in feed:
-                try:
-                    event_id = re.search(url_re_expression, feed['message']).group(1)
-                    event_ids.append(int(event_id))
-                except AttributeError:
-                    pass # not a event link
-            if 'link' in feed:
-                try:
-                    event_id = re.search(url_re_expression, feed['link']).group(1)
-                    event_ids.append(int(event_id))
-                except AttributeError:
-                    pass # not a event link
-        return list(set(event_ids)) # remove replicated links
+    def load_members(self, offset=0, limit=1000): # TODO: offset+limit
+        self.members = self.load_graph(self.URL_MEMBERS)
+        return self.members
 
-    def get_users(self, limit=100, offset=0):
-        """
-        {
-           "data": [
-              {
-                 "name": "Marcelo Malaguti",
-                 "id": "100002104458008",
-                 "administrator": false
-              },
-              {...} ...
-        }
-        """
-        # http://developers.facebook.com/tools/explorer/?method=GET&path=195466193802264%2Fmembers
-        self.update_access_token()
+    def get_recent_users_ids_from_members(self):
+        return list(set(self._get_users_ids_from_list(self.members.get('data', []))))
 
-        url = FB_GROUP_MEMBERS_GRAPH % (self.uid, limit, offset, self.access_token)
-        logging.info(url)
+    def get_all_users_ids(self):
+        users = super(FacebookGroup, self).get_all_users_ids()
+        users += self.get_recent_users_ids_from_members()
+        return list(set(users))
 
-        try:
-            facebook_json = self.request(url, 'application/json')
-            #logging.debug(facebook_json)
-            return json.loads(facebook_json)['data']
-        except Exception as e:
-            logging.error(u'Error: %s' % repr(e))
-            # raise FacebookGroupMembersError(e, u'Error to read members of group'), None, sys.exc_info()[2]
-        return []
+    def get_email(self):
+        "Send e-mail to post in Group's feed"
+        return self.format_email(self.data.get('email', None))
 
-
-# https://developers.facebook.com/docs/reference/api/user/
-class FacebookUserInfo(FacebookGraphAPI):
-    def get_info(self):
-        url = FB_USER_GRAPH % (self.uid, self.access_token)
-        logging.info(url)
-        try:
-            facebook_json = self.request(url, 'application/json')
-            #logging.debug(facebook_json)
-            return json.loads(facebook_json)
-        except Exception as e:
-            logging.error(u'Error: %s' % repr(e))
-        return {}
-
+    def get_privacy(self):
+        return self.data.get('privacy', None)

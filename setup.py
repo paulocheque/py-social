@@ -10,6 +10,10 @@ tests_require = [
 ]
 
 install_requires = [
+    'six',
+    'requests',
+    'python-dateutil',
+    'simplejson',
     'tweepy',
 ]
 
