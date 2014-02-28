@@ -15,6 +15,8 @@ install_requires = [
     'python-dateutil',
     'simplejson',
     'tweepy',
+    'facebook-sdk',
+    'selenium',
 ]
 
 setup(name='%s' % PROJECT_NAME,

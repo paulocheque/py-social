@@ -5,3 +5,6 @@ python-dateutil==2.1
 simplejson==3.3.0
 
 tweepy==2.2
+facebook-sdk==0.4.0
+
+selenium==2.40.0
