@@ -54,6 +54,10 @@ fb.load_feed()
 fb.load_members()
 print len(fb.get_all_users_ids())
 print len(fb.get_events_ids_from_feed())
+
+# To load all feed:
+while fb.has_feed_to_load():
+  fb.load_feed()
 ```
 
 Submenu
@@ -105,6 +109,10 @@ pip install PySocial --upgrade --no-deps
 
 Change Log
 -------------
+
+#### 0.1.1 (2014/03/02)
+
+* [new] Group/Event/Page has the option to load all feed
 
 #### 0.1.0 (2014/02/20)
 
