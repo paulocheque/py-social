@@ -18,6 +18,7 @@ Basic Example of Usage
 
 ```python
 # Example of Usage
+import os
 from py_social.facebook_services import *
 
 TEST_FB_APP_ID = os.getenv('FACEBOOK_API_KEY', '?')
@@ -58,6 +59,9 @@ print len(fb.get_events_ids_from_feed())
 # To load all feed:
 while fb.has_feed_to_load():
   fb.load_feed()
+
+# or
+fb.load_feed(pages=10)
 ```
 
 Submenu
@@ -110,6 +114,11 @@ pip install PySocial --upgrade --no-deps
 Change Log
 -------------
 
+#### 0.1.2 (2014/03/02)
+
+* [new] Group/Event/Page pages option in load_feed method: load_feed(pages=1).
+* [update] Using python logging system instead of print commands.
+
 #### 0.1.1 (2014/03/02)
 
 * [new] Group/Event/Page has the option to load all feed
@@ -121,17 +130,17 @@ Change Log
 * [new] get Event/Page/Group events from feed.
 * [new] get Event users from maybe and attending.
 * [new] get Group users from members.
-* [update] FacebookEventPage renamed to FacebookEvent
-* [update] FacebookGroupPage renamed to FacebookGroup
-* [update] FacebookUserInfo renamed to FacebookUser
-* [update] FacebookEvent.get_event_name renamed to FacebookEvent.get_name
+* [update] FacebookEventPage renamed to FacebookEvent.
+* [update] FacebookGroupPage renamed to FacebookGroup.
+* [update] FacebookUserInfo renamed to FacebookUser.
+* [update] FacebookEvent.get_event_name() renamed to FacebookEvent.get_name().
 
 #### 0.0.1 (2014/02/01)
 
-* [new] FacebookEventPage
-* [new] FacebookGroupPage
-* [new] FacebookUserInfo
-* [new] tweet
+* [new] FacebookEventPage.
+* [new] FacebookGroupPage.
+* [new] FacebookUserInfo.
+* [new] tweet.
 
 
 TODO
