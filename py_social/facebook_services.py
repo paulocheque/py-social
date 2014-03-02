@@ -160,10 +160,17 @@ class FacebookCommunity(FacebookGraphApi):
     def __init__(self, fb_id, app_id=None, app_secret=None):
         super(FacebookCommunity, self).__init__(fb_id, app_id=app_id, app_secret=app_secret)
         self.feed = []
+        self.next_feed = self.URL_FEED
 
     def load_feed(self):
-        self.feed = self.load_graph(self.URL_FEED).get('data', [])
+        if self.next_feed:
+            result = self.load_graph(self.next_feed)
+            self.feed += result.get('data', [])
+            self.next_feed = result.get('paging', {}).get('next', None)
         return self.feed
+
+    def has_feed_to_load(self):
+        return self.next_feed is not None
 
     def get_events_ids_from_feed(self):
         event_ids = []

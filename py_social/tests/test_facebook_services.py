@@ -67,7 +67,18 @@ class FacebookCommunityTests(FacebookTestCase):
                     ]
                 }
             }
-        ]
+        ],
+        "paging": {
+          "next": "http://next-url",
+          "previous": "http://previous-url"
+        }
+    }
+    """
+    FACEBOOK_JSON2 = """
+    {
+       "data": [
+
+       ]
     }
     """
 
@@ -92,6 +103,12 @@ class FacebookCommunityTests(FacebookTestCase):
 
     # def test_get_all_users(self):
     #     self.fb.get_all_users(fields='id')
+
+    def test_has_feed_to_load(self):
+        self.fb.load_graph = lambda url: json.loads(self.FACEBOOK_JSON2)
+        self.assertEquals(True, self.fb.has_feed_to_load())
+        self.fb.load_feed()
+        self.assertEquals(False, self.fb.has_feed_to_load())
 
 
 class FacebookEventTests(FacebookTestCase):
