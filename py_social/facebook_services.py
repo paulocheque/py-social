@@ -93,10 +93,10 @@ class FacebookGraphApi(object):
         graph_url = graph_url % dict(fb_id=self.fb_id)
         self.update_access_token()
         graph_url = self._add_access_token_to_url(graph_url)
-        print(graph_url)
+        logging.info(graph_url)
         headers = {'content-type': 'application/json'}
         r = requests.get(graph_url, headers=headers)
-        print(r)
+        logging.debug(r)
         self.validate_status_code(r.status_code)
         self.validate_response(r.json())
         return r.json()
@@ -110,7 +110,7 @@ class FacebookGraphApi(object):
         self._number_of_requests += 1
         self.update_access_token()
         graph_url = self._add_access_token_to_url(graph_url)
-        print(graph_url)
+        logging.info(graph_url)
         r = requests.get(graph_url)
         return r.content
 
@@ -162,11 +162,13 @@ class FacebookCommunity(FacebookGraphApi):
         self.feed = []
         self.next_feed = self.URL_FEED
 
-    def load_feed(self):
-        if self.next_feed:
+    def load_feed(self, pages=1):
+        if self.has_feed_to_load():
             result = self.load_graph(self.next_feed)
             self.feed += result.get('data', [])
             self.next_feed = result.get('paging', {}).get('next', None)
+            if pages > 0:
+                self.load_feed(pages=pages-1)
         return self.feed
 
     def has_feed_to_load(self):
