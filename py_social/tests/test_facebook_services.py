@@ -5,6 +5,16 @@ import unittest
 from ..facebook_services import *
 
 
+class FacebookUtilsTests(unittest.TestCase):
+    def test_get_event_id_from_facebook_url(self):
+        self.assertEquals(123, get_event_id_from_facebook_url('http://facebook.com/events/123'))
+        self.assertEquals(456, get_event_id_from_facebook_url('http://facebook.com/events/456?x=1'))
+
+    def test_get_user_id_from_facebook_url(self):
+        self.assertEquals(123, get_user_id_from_facebook_url('https://www.facebook.com/profile.php?id=123'))
+        self.assertEquals(456, get_user_id_from_facebook_url('https://www.facebook.com/profile.php?id=456&fref=ts'))
+
+
 class FacebookTestCase(unittest.TestCase):
     FB_CLASS = FacebookGraphApi
     FACEBOOK_JSON = """

@@ -23,7 +23,10 @@ class FacebookInvalidId(FacebookError): pass
 
 
 def get_event_id_from_facebook_url(value):
-    return int(re.match(r'.+/events/(?P<event_id>\d+).*', value).group('event_id'))
+    return int(re.match(r'.+/events/(?P<fb_id>\d+).*', value).group('fb_id'))
+
+def get_user_id_from_facebook_url(value):
+    return int(re.match(r'.+id=(?P<fb_id>\d+).*', value).group('fb_id'))
 
 
 # http://developers.facebook.com/tools/explorer/
