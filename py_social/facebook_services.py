@@ -42,6 +42,9 @@ class FacebookGraphApi(object):
         self._number_of_requests = 0
         self._timestamp_token_updated = None
 
+    def set_log_level(self, logging_level):
+        logging.getLogger().setLevel(logging_level)
+
     # http://developers.facebook.com/blog/post/2011/05/13/how-to--handle-expired-access-tokens/
     def update_access_token(self):
         token_not_loaded = self._access_token is None
@@ -289,6 +292,9 @@ class FacebookEvent(FacebookCommunity):
 
     def get_name(self):
         return self.data.get('name', None)
+
+    def get_owner(self):
+        return self.data.get('owner', {}).get('id', None)
 
     def get_lat_long(self):
         try:
