@@ -22,11 +22,17 @@ class FacebookPermissionError(FacebookError): pass
 class FacebookInvalidId(FacebookError): pass
 
 
-def get_event_id_from_facebook_url(value):
-    return int(re.match(r'.+/events/(?P<fb_id>\d+).*', value).group('fb_id'))
+def get_event_id_from_facebook_url(url):
+    value = re.match(r'.+/events/(?P<fb_id>\d+).*', url)
+    if value:
+        return int(value.group('fb_id'))
+    return None
 
-def get_user_id_from_facebook_url(value):
-    return int(re.match(r'.+id=(?P<fb_id>\d+).*', value).group('fb_id'))
+def get_user_id_from_facebook_url(url):
+    value = re.match(r'.+id=(?P<fb_id>\d+).*', url)
+    if value:
+        return int(value.group('fb_id'))
+    return None
 
 
 # http://developers.facebook.com/tools/explorer/

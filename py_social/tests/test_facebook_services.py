@@ -9,10 +9,14 @@ class FacebookUtilsTests(unittest.TestCase):
     def test_get_event_id_from_facebook_url(self):
         self.assertEquals(123, get_event_id_from_facebook_url('http://facebook.com/events/123'))
         self.assertEquals(456, get_event_id_from_facebook_url('http://facebook.com/events/456?x=1'))
+        self.assertEquals(None, get_event_id_from_facebook_url('123'))
+        self.assertEquals(None, get_event_id_from_facebook_url('abc'))
 
     def test_get_user_id_from_facebook_url(self):
         self.assertEquals(123, get_user_id_from_facebook_url('https://www.facebook.com/profile.php?id=123'))
         self.assertEquals(456, get_user_id_from_facebook_url('https://www.facebook.com/profile.php?id=456&fref=ts'))
+        self.assertEquals(None, get_user_id_from_facebook_url('123'))
+        self.assertEquals(None, get_user_id_from_facebook_url('abc'))
 
 
 class FacebookTestCase(unittest.TestCase):
