@@ -114,6 +114,11 @@ pip install PySocial --upgrade --no-deps
 Change Log
 -------------
 
+#### 0.1.3 (2014/03/03)
+
+* [new] Event get_owner
+* [new] set_log_level debug method
+
 #### 0.1.2 (2014/03/02)
 
 * [new] Group/Event/Page pages option in load_feed method: load_feed(pages=1).
