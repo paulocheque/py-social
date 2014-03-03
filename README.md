@@ -114,6 +114,10 @@ pip install PySocial --upgrade --no-deps
 Change Log
 -------------
 
+#### 0.1.4 (2014/03/03)
+
+* [new] get_user_id_from_facebook_url method
+
 #### 0.1.3 (2014/03/03)
 
 * [new] Event get_owner
