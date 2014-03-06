@@ -1,4 +1,4 @@
-VERSION = "0.1.6"
+VERSION = "0.1.7"
 # PYTHON_ENVS = [:env27, :env33]
 PYTHON_ENVS = [:env27]
 PYTHON_EXECS = {:env27 => "python2.7", :env33 => "python3.3"}
