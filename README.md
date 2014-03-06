@@ -117,6 +117,7 @@ Change Log
 #### 0.1.7 (2014/03/06)
 
 * [update] More logs in error scenario to tweet
+* [bugfix] Bugfix in error scenarios
 
 #### 0.1.6 (2014/03/06)
 

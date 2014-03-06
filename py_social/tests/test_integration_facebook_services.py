@@ -5,7 +5,7 @@ import unittest
 from ..facebook_services import *
 
 # export TEST_FB_USER=1392965554
-# export TEST_FB_EVENT=574531142642166
+# export TEST_FB_EVENT=679999435376343
 # export TEST_FB_PAGE=627676453946073
 # export TEST_FB_GROUP=
 # export TEST_FB_APP_ID=
@@ -66,23 +66,23 @@ class FacebookEventTests(FacebookCommunityTests):
     fb_id = FacebookTestCase.event_id
 
     def test_get_name(self):
-        r = u"3\xba Ato contra a Copa 'Se n\xe3o tiver transporte n\xe3o vai ter Copa!'"
+        r = u"Teste"
         self.assertEquals(r, self.fb.get_name())
 
     def test_get_location(self):
-        self.assertEquals(u'Largo Da Batata', self.fb.get_location())
+        self.assertEquals(u'FMRP USP', self.fb.get_location())
 
     def test_get_timestamp(self):
-        self.assertEquals('2014-03-13 18:00', self.fb.get_timestamp().strftime('%Y-%m-%d %H:%M'))
+        self.assertEquals('2014-03-06 00:00', self.fb.get_timestamp().strftime('%Y-%m-%d %H:%M'))
 
     def test_get_naive_timestamp(self):
-        self.assertEquals(datetime(2014, 03, 13, 18, 00, 00), self.fb.get_naive_timestamp())
+        self.assertEquals(datetime(2014, 03, 06, 00, 00, 00), self.fb.get_naive_timestamp())
 
     def test_get_date_str(self):
-        self.assertEquals('2014-03-13', self.fb.get_date_str())
+        self.assertEquals('2014-03-06', self.fb.get_date_str())
 
     def test_get_time_str(self):
-        self.assertEquals('18:00', self.fb.get_time_str())
+        self.assertEquals('00:00', self.fb.get_time_str())
 
     def test_maybe(self):
         self.fb.load_maybe()

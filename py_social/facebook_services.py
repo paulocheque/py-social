@@ -89,7 +89,7 @@ class FacebookGraphApi(object):
             #       "code": 104
             #    }
             # }
-            code = int(error.get('code'), 0)
+            code = int(error.get('code', 0))
             msg = error.get('message', '')
             error_type = error.get('type', '')
             if code == 104 or code == 102 or error_type == 'OAuthException':
