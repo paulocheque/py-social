@@ -308,7 +308,8 @@ class FacebookEvent(FacebookCommunity):
     def get_lat_long(self):
         try:
             return self.data['venue']['latitude'], self.data['venue']['longitude']
-        except KeyError:
+        except (KeyError, TypeError):
+            # sometimes the FB returns a {} and other times a [], if venue is empty.
             return None, None
 
     def get_location(self):
