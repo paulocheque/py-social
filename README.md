@@ -3,7 +3,7 @@ PySocial
 
 ![Continuous Integration Status](https://secure.travis-ci.org/paulocheque/PySocial.png)
 
-#### Latest version: 0.1.0 (2013/../..)
+#### Latest version: 0.1.6 (2013/../..)
 
 DESCRIPTOIN
 
@@ -113,6 +113,10 @@ pip install PySocial --upgrade --no-deps
 
 Change Log
 -------------
+
+#### 0.1.6 (2014/03/06)
+
+* [bugfix] Deal with FB graph bug for latitude and longitude
 
 #### 0.1.5 (2014/03/03)
 
