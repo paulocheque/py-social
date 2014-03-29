@@ -275,18 +275,31 @@ class FacebookEvent(FacebookCommunity):
     def load_flyers(self):
         self.flyers_info = self.load_graph(self.URL_ALL_PICTURES)
         try:
-            self.flyer_default = self.load_image(self.flyers_info['data'][0]['pic'])
-        except (KeyError, IndexError):
-            pass
-        try:
-            self.flyer_big = self.load_image(self.flyers_info['data'][0]['pic_big'])
-        except (KeyError, IndexError):
-            pass
-        try:
-            self.flyer_small = self.load_image(self.flyers_info['data'][0]['pic_small'])
-        except (KeyError, IndexError):
+            images = self.flyers_info['data'][0]
+            try:
+                self.flyer_default = self.load_image(images['pic'])
+            except (KeyError):
+                pass
+            try:
+                self.flyer_big = self.load_image(images['pic_big'])
+            except (KeyError):
+                pass
+            try:
+                self.flyer_small = self.load_image(images['pic_small'])
+            except (KeyError):
+                pass
+        except (IndexError):
             pass
         return self.flyers_info
+
+    def flyer_urls(self):
+        if not self.flyers_info:
+            self.load_flyers()
+        try:
+            images = self.flyers_info['data'][0]
+            return image.values()
+        except (IndexError):
+            return []
 
     def get_recent_users_ids_from_maybe(self):
         return list(set(self._get_users_ids_from_list(self.maybe.get('data', []))))
