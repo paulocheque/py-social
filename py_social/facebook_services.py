@@ -120,6 +120,7 @@ class FacebookGraphApi(object):
 
     def load_image(self, graph_url):
         self._number_of_requests += 1
+        graph_url = graph_url % dict(fb_id=self.fb_id)
         self.update_access_token()
         graph_url = self._add_access_token_to_url(graph_url)
         logging.info(graph_url)
