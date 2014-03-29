@@ -1,7 +1,7 @@
 #from distutils.core import setup
 from setuptools import setup, find_packages
 
-VERSION = '0.1.7'
+VERSION = '0.1.8'
 PROJECT_NAME = 'py-social'
 
 tests_require = [
