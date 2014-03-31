@@ -297,7 +297,7 @@ class FacebookEvent(FacebookCommunity):
             self.load_flyers()
         try:
             images = self.flyers_info['data'][0]
-            return image.values()
+            return images.values()
         except (IndexError):
             return []
 
