@@ -3,7 +3,7 @@ PySocial
 
 ![Continuous Integration Status](https://secure.travis-ci.org/paulocheque/PySocial.png)
 
-#### Latest version: 0.1.8 (2013/../..)
+#### Latest version: 0.1.9 (2013/../..)
 
 DESCRIPTOIN
 
@@ -113,6 +113,10 @@ pip install PySocial --upgrade --no-deps
 
 Change Log
 -------------
+
+#### 0.1.9 (2014/03/31)
+
+* [bugfix] Fixed Event flyer_urls method
 
 #### 0.1.8 (2014/03/29)
 
