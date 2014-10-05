@@ -34,7 +34,7 @@ class FacebookSpider(object):
             self.driver.get('http://facebook.com/messages/%s' % facebook_id)
 
             if message in self.driver.page_source:
-                print(u'This message has already been sent to the user: %s' % facebook_id)
+                print(('This message has already been sent to the user: %s' % facebook_id))
                 return False
 
             text_area = self.driver.find_elements_by_xpath("//textarea[@name='message_body']")[0]

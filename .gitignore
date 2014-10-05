@@ -38,8 +38,10 @@ nosetests.xml
 .project
 .pydevproject
 
+env
 env26
 env27
 env30
 env32
 env33
+env34

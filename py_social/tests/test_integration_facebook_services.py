@@ -66,17 +66,17 @@ class FacebookEventTests(FacebookCommunityTests):
     fb_id = FacebookTestCase.event_id
 
     def test_get_name(self):
-        r = u"Teste"
+        r = "Teste"
         self.assertEquals(r, self.fb.get_name())
 
     def test_get_location(self):
-        self.assertEquals(u'FMRP USP', self.fb.get_location())
+        self.assertEquals('FMRP USP', self.fb.get_location())
 
     def test_get_timestamp(self):
         self.assertEquals('2014-03-06 00:00', self.fb.get_timestamp().strftime('%Y-%m-%d %H:%M'))
 
     def test_get_naive_timestamp(self):
-        self.assertEquals(datetime(2014, 03, 06, 00, 00, 00), self.fb.get_naive_timestamp())
+        self.assertEquals(datetime(2014, 3, 6, 00, 00, 00), self.fb.get_naive_timestamp())
 
     def test_get_date_str(self):
         self.assertEquals('2014-03-06', self.fb.get_date_str())
