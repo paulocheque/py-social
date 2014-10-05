@@ -29,7 +29,11 @@ setup(name='%s' % PROJECT_NAME,
       classifiers=[
           # 'Framework :: Tornado',
           'Operating System :: OS Independent',
-          'Topic :: Software Development'
+          'Topic :: Software Development',
+          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3.3',
+          'Programming Language :: Python :: 3.4',
+          'Programming Language :: Python :: Implementation :: PyPy',
       ],
 
       version='%s' % VERSION,

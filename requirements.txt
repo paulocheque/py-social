@@ -1,3 +1,6 @@
+# git clone https://gist.github.com/38995ed49140bdf9ec77.git
+#pip freeze > requirements.txt.lock
+
 six==1.4.1
 requests==2.2.1
 python-dateutil==2.1
