@@ -2,7 +2,7 @@
 #pip freeze > requirements.txt.lock
 
 six==1.4.1
-requests==2.2.1
+requests==2.20.0
 python-dateutil==2.1
 
 simplejson==3.3.0
